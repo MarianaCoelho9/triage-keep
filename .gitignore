@@ -1,0 +1,26 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Monorepo local environments
+backend/.venv/
+frontend/node_modules/
+frontend/.next/
+
+# Local env files
+backend/.env
+frontend/.env.local
+frontend/.env*
+
+# Large local model artifacts
+backend/models/
+
+# OS files
+.DS_Store
