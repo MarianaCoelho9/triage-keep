@@ -1,8 +1,0 @@
-backend/models/
-backend/.venv/
-backend/__pycache__/
-backend/.pytest_cache/
-frontend/node_modules/
-frontend/.next/
-.git/
-.DS_Store
