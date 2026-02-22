@@ -14,6 +14,8 @@ AI-assisted voice triage prototype for the MedGemma Impact Challenge.
   - `Audio -> STT -> interaction -> incremental extraction -> TTS -> websocket events`
   - `END_SESSION` signal in agent text triggers final report generation events.
 
+- Detailed technical architecture: [docs/technical-architecture.md](docs/technical-architecture.md)
+
 ## API Overview
 
 - `GET /`: health/status.
@@ -82,7 +84,7 @@ Set `NEXT_PUBLIC_VOICE_INTERACTION_MODE` in `frontend/.env.local`:
 
 ## Demo Assets
 
-- Demo video: [docs/triage-keep_demo.mov](docs/triage-keep_demo.mov)
+- Demo video: [docs/triage-keep_demo.mp4](docs/triage-keep_demo.mp4)
 - Startup screenshot: ![App startup](docs/app_startup.png)
 - UI screenshot: ![Triage UI example](docs/ui_example.png)
 

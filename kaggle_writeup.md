@@ -7,94 +7,99 @@ TriageKeep: Real-Time MedGemma Voice Triage Copilot
 Mariana Coelho - AI Engineer
 
 ### Problem statement
-Emergency and urgent-care triage is a high-impact bottleneck: clinicians and dispatchers must collect critical information quickly, while under pressure and with incomplete patient narratives. In many settings, this intake is still manual and fragmented, causing:
+At the front door of urgent care, minutes matter. A dispatcher or triage nurse is listening for danger signals while also documenting symptoms, onset, severity, and history. In practice, that first contact is often a free-form conversation plus manual notes. Important details can be missed, structure arrives late, and data is re-entered downstream.
 
-- delayed risk stratification,
-- inconsistent data capture,
-- increased administrative burden,
-- and poor interoperability with downstream systems.
+TriageKeep was built for this exact moment. It is not a generic chatbot. It is a safety-first, human-in-the-loop intake workflow that:
 
-The unmet need is not just "chat with a model"; it is a clinically usable intake workflow that can handle natural voice conversation, continuously structure data, and produce handoff-ready outputs for existing medical software.
+- listens to natural voice conversation,
+- continuously structures medical information during the call,
+- highlights red-flag context for operator awareness,
+- generates a handoff-ready final report,
+- and exports FHIR-compatible JSON for interoperability.
 
-TriageKeep addresses this with a safety-first, human-in-the-loop triage copilot that captures patient information through voice, structures it in real time, and produces both a final report and FHIR-ready output.
-It can operate 24/7 as an always-available intake assistant, helping perform proper triage before a patient reaches a doctor and reducing misrouted or inappropriate appointment bookings.
+The goal is simple: improve first-contact triage quality and speed without removing human clinical oversight.
 
-#### Who the user is and improved journey
-Primary users are triage nurses, dispatch operators, and intake clinicians. Secondary users are health systems that need interoperable triage outputs.
+#### Who the user is and how the journey changes
+Primary users are triage nurses, dispatch operators, and intake clinicians. Secondary users are health systems that need interoperable outputs.
 
 Before TriageKeep:
-- free-form conversation,
-- manual note-taking during calls,
-- delayed structured summary,
-- duplicate data entry in downstream software.
+- free-form intake calls,
+- manual note-taking under pressure,
+- delayed structured summary after the conversation,
+- duplicate entry into EHR or triage systems.
 
 With TriageKeep:
-- live voice conversation with auto-turn support,
-- continuous structured extraction on screen,
-- one-click final report generation,
-- FHIR JSON export for integration with existing systems.
+- live voice interaction with auto-turn support,
+- continuous on-screen extraction of key triage entities,
+- one-click final structured report generation,
+- FHIR Bundle JSON export for downstream integration.
 
 #### Impact potential
-If deployed in call centers, emergency intake desks, and telehealth front doors, TriageKeep can improve both speed and quality of first contact:
+In emergency call centers, urgent-care front desks, and telehealth intake, this workflow can improve both operational speed and safety awareness:
 
-- Faster first-pass intake through hands-free conversation.
-- Earlier visibility of red-flag symptoms through live extraction.
-- Reduced documentation load via auto-generated structured reports.
-- Lower integration friction by exporting interoperable FHIR bundles.
-- Better patient routing before clinician contact, reducing wrong appointment allocation and improving queue prioritization.
+- faster first-pass intake with less note-taking overhead,
+- earlier visibility of severe symptom patterns via live extraction,
+- higher report completeness at handoff,
+- lower integration friction through standards-based output,
+- better pre-clinician routing and queue prioritization.
 
-Our impact model is measurable and operational:
+Impact is measured as operational KPIs, not only model benchmarks:
 
-- Intake efficiency: average minutes from call start to complete triage summary.
-- Triage quality: completeness rate of required fields (complaint, onset, severity, associated symptoms, history, risk level).
-- Safety responsiveness: escalation trigger recall for severe symptom patterns.
+- Intake efficiency: time from call start to completed triage summary.
+- Triage quality: completeness of required fields (complaint, onset, severity, associated symptoms, history, risk level).
+- Safety responsiveness: recall of escalation triggers for severe patterns.
 - Workflow adoption: percentage of sessions marked usable by operators.
 
 ### Overall solution
-TriageKeep is a multimodal, real-time pipeline built around HAI-DEF models, with MedGemma as the core clinical reasoning component.
+TriageKeep is an end-to-end voice triage pipeline built around HAI-DEF models, with MedGemma as the core medical reasoning engine.
+
+#### Story of one triage session (end-to-end)
+1. A patient speaks naturally. The system captures audio in real time.
+2. MedASR transcribes the conversation with medical vocabulary awareness.
+3. MedGemma drives the interview flow, asks focused follow-ups, and tracks context.
+4. In parallel, extraction workflows keep a live structured triage state on screen.
+5. At session end, MedGemma generates a clinician-friendly structured report.
+6. The report is mapped and validated into a FHIR Bundle for handoff to existing health software.
+7. The human operator reviews outputs before any downstream action.
+
+This narrative flow is the product: conversational intake, structured understanding, safe review, and interoperable transfer.
 
 #### Architecture schema
 ```mermaid
 flowchart LR
-    %% Logical Layers using Subgraphs
-    subgraph ClientLayer [Client & UI Layer]
-        A([🗣️ Patient Voice]) --> B[💻 Next.js Frontend<br/>UI, Transcript, Dashboard]
+    subgraph ClientLayer["Client & UI Layer"]
+        A["Patient Voice"] --> B["Next.js Frontend<br/>UI, Transcript, Dashboard"]
     end
-    subgraph Delivery [Network Transport]
-        C{🔌 WebSocket<br/>/ws/audio}
+    subgraph Delivery["Network Transport"]
+        C{"WebSocket<br/>/ws/audio"}
     end
-    subgraph AI [AI & Inference Services]
-        D[[🎙️ STT Service<br/>MedASR]]
-        H[[🔊 TTS Service<br/>Kokoro-82M]]
+    subgraph AI["AI & Inference Services"]
+        D["STT Service<br/>MedASR"]
+        H["TTS Service<br/>Kokoro-82M"]
     end
-    subgraph Logic [MedGemma Core Backend]
-        E(🧠 MedGemma Agent<br/>Dialogue & Context Tracking)
-        F[📊 Incremental Extraction<br/>Symptoms & Red Flags]
-        I[📝 Final Report Generation]
+    subgraph Logic["MedGemma Core Backend"]
+        E["MedGemma Agent<br/>Dialogue & Context Tracking"]
+        F["Incremental Extraction<br/>Symptoms & Red Flags"]
+        I["Final Report Generation"]
     end
-    subgraph Export [Interoperability]
-        J[/📄 Structured Triage Report/]
-        K[🔄 FHIR Mapping & Validation]
-        L[/📦 FHIR Bundle JSON/]
+    subgraph Export["Interoperability"]
+        J["Structured Triage Report"]
+        K["FHIR Mapping & Validation"]
+        L["FHIR Bundle JSON"]
     end
-    M[(🏥 Existing EHR /<br/>Medical Software)]
-    %% Core Data Flow
-    B <-->|Bidirectional Audio & Events| C
+    M[("Existing EHR<br/>Medical Software")]
+    B <-->|Audio + Events| C
     C -->|Raw Audio| D
     D -->|Transcribed Text| E
-    %% Audio Response Path
     E -->|Response Text| H
     H -->|Synthesized Audio| C
-    %% Live Dashboard Data Path
-    E -->|Continuous Context| F
-    F -.->|Live JSON Updates| B
-    %% Final Output Path
-    E -->|Session Completion| I
+    E -->|Context stream| F
+    F -.->|Live JSON| B
+    E -->|Complete session| I
     I --> J
     J --> K
     K --> L
     L -->|API Push| M
-    %% Theming / Styling - Explicit text color (#000000) added for GitHub Dark Mode compatibility!
     classDef client fill:#f0f4f8,stroke:#334e68,stroke-width:2px,color:#000000;
     classDef transport fill:#fff8e6,stroke:#b19039,stroke-width:2px,color:#000000;
     classDef brain fill:#e6f2ff,stroke:#005bb5,stroke-width:2px,color:#000000;
@@ -108,57 +113,58 @@ flowchart LR
 ```
 
 #### Why HAI-DEF models are essential here (Effective use of HAI-DEF models)
-This use case requires medical-domain language understanding, structured reasoning, and safe communication patterns. Generic LLM pipelines are weaker for this context. TriageKeep uses HAI-DEF models where they matter most:
+This project depends on medical-language understanding and clinically coherent follow-up behavior. HAI-DEF models are used at the points where domain grounding matters most:
 
-1. Medical interaction engine (MedGemma): drives patient interview turns and context-aware follow-up questions.
-2. Incremental medical entity extraction (MedGemma workflows): continuously updates structured triage fields during conversation.
-3. Final report generation (MedGemma workflows): synthesizes transcript and extracted data into clinician-friendly sections.
-4. Domain speech stack: MedASR for medical speech-to-text and Kokoro-based TTS for low-latency responses.
+1. MedGemma interaction engine: context-aware, triage-focused questioning during the live interview.
+2. MedGemma extraction workflows: continuous structured updates of symptoms, risk factors, and red flags.
+3. MedGemma report synthesis: final structured report suitable for clinical handoff.
+4. Domain speech stack: MedASR for medical STT and Kokoro-based TTS for low-latency voice response.
 
-Why alternatives are less effective:
-- Generic STT has higher risk of medical-term transcription errors.
-- Generic LLM reasoning is less reliable for triage-specific red-flag handling.
-- Non-medical pipelines require heavier post-processing to reach clinically usable structure.
-- Without medical-domain priors, interoperability outputs are more brittle and less trustworthy for handoff.
+Why this is better than a generic stack:
+- generic STT is more error-prone on medical terminology,
+- generic LLM reasoning is less reliable for triage escalation context,
+- post-processing burden grows when medical structure is not native to the model behavior,
+- interoperability outputs become more brittle without domain-aware intermediate structure.
 
 #### Core use cases implemented in this repository
-1. STT -> medical interaction -> TTS live conversation.  
-2. Auto-turn conversation using VAD (hands-free mode) with fallback to push-to-talk mode.  
-3. Real-time entity extraction in a live dashboard for dispatcher awareness.  
-4. Automated structured triage report generation at end of session.  
-5. FHIR conversion/export to integrate with existing EHR/health software.
+1. STT -> MedGemma interaction -> TTS live voice loop.
+2. Auto-turn conversation with VAD (plus push-to-talk fallback).
+3. Real-time extraction dashboard for operator situational awareness.
+4. End-session structured triage report generation.
+5. FHIR conversion/export for EHR and health-system integration.
 
 ### Technical details
 #### Product feasibility
-This project is implemented as a deployable full-stack system, not an offline notebook demo.
+This is a deployable full-stack application, not only an offline notebook demonstration.
 
-- Frontend: Next.js dispatcher interface with transcript panel, live triage dashboard, session controls, and final report view.
-- Backend: FastAPI services and WebSocket voice/event streaming.
+- Frontend: Next.js interface with transcript, live dashboard, controls, and report panel.
+- Backend: FastAPI services with WebSocket voice/event streaming.
 - Model serving:
   - STT: `google/medasr`
   - LLM: MedGemma via `llama.cpp` (GGUF runtime)
   - TTS: Kokoro-82M
-- Real-time protocol: bidirectional streaming over `/ws/audio` and `/ws/audio/v2`.
-- Structured APIs for pipeline stages: `/extract`, `/report`, `/transcribe`, `/synthesize`, `/analyze`.
+- Streaming endpoint: `/ws/audio`.
+- Structured APIs: `/extract`, `/report`, `/transcribe`, `/synthesize`, `/analyze`.
 
-The architecture is modular by design: STT, LLM, and TTS are isolated services, enabling hardware-aware scaling and component swaps without rewriting product logic.
+The architecture is modular: STT, LLM, and TTS run as separable services, supporting hardware-aware scaling and future component swaps.
 
 #### Model adaptation and tuning
-- MedGemma is served locally via `llama.cpp` GGUF runtime for practical latency/cost tradeoffs in real-time settings.
-- The system currently uses workflow-level adaptation (prompt engineering + schema-constrained extraction/reporting), with deterministic validation layers.
-- Quantized runtime configurations are used for deployment feasibility on available hardware.
-- Next iteration: LoRA fine-tuning on curated triage dialogues plus institution-specific terminology for higher extraction recall.
+- MedGemma is served locally through `llama.cpp` GGUF for practical latency and cost.
+- Adaptation is workflow-level in this MVP: prompt design plus schema-constrained extraction/report generation.
+- Deterministic validation layers are used before emitting structured outputs.
+- Quantized runtimes improve deployment feasibility on constrained hardware.
+- Planned next step: LoRA fine-tuning on curated triage dialogues and institution-specific terminology.
 
 #### Safety and clinical workflow alignment
-TriageKeep is explicitly designed as decision support, not diagnosis automation.
+TriageKeep is decision support, not diagnosis automation.
 
-- Non-diagnostic behavior is enforced in system guardrails.
-- High-risk symptom patterns are escalated conservatively.
-- Parsing and output validation return explicit success/error envelopes.
-- Human operators can review transcript, extracted entities, and final report before action.
+- Non-diagnostic behavior is enforced by guardrails.
+- Severe symptom patterns are escalated conservatively.
+- Parsing and output paths return explicit success/error envelopes.
+- Human operators review transcript, extraction, and final report before action.
 
 #### Performance analysis protocol
-Performance is evaluated at system level (not only model benchmark level), including:
+Readiness is evaluated at the workflow level:
 
 - Voice UX latency: P95 end-of-speech to first assistant audio chunk.
 - Conversation robustness: false commits, missed commits, barge-in success.
@@ -166,18 +172,27 @@ Performance is evaluated at system level (not only model benchmark level), inclu
 - Safety behavior: escalation recall in red-flag scenarios.
 - Operational reliability: session-fatal error rate and usable-session rate.
 
-This protocol reflects practical readiness for real call flows and triage desks.
+This aligns evaluation with real triage operations rather than isolated model tests.
 
-#### Reliability and execution quality
-The repository includes reproducibility and quality gates:
+#### Latency and conversation robustness
+Real-time voice quality depends on both speed and turn control. TriageKeep includes explicit safeguards for this:
 
-- Clear local startup instructions for backend/frontend.
-- Automated backend tests spanning websocket flows, extraction, safety rules, FHIR mapping, latency logging, and pipeline behavior.
-- 22 backend test files currently included in the project.
-- Frontend linting and backend test commands documented for repeatable validation.
+- Turn latency instrumentation:
+  - frontend logs first assistant audio chunk per turn (`assistant_first_audio_chunk`),
+  - backend logs TTS stage latency (`tts_latency`),
+  - pilot KPI remains P95 end-of-speech -> first assistant audio chunk.
+- Barge-in handling in auto-turn mode:
+  - if user speech starts while assistant audio is playing, VAD triggers `barge_in_triggered`,
+  - current playback is stopped immediately, queued audio is cleared, and status returns to listening.
+- Turn-collision protection:
+  - commit cooldown prevents duplicate turn commits,
+  - post-playback holdoff avoids premature re-commit loops.
+- Runtime resilience:
+  - processing watchdog/fallback recovers from delayed responses,
+  - websocket keepalive and reconnect logic reduce session drops.
 
 #### Reproducibility environment
-All reported results were produced on the following local setup:
+All reported behavior was produced on:
 
 - Hardware: MacBook Pro (Apple M4 Pro, 14 CPU cores), 48 GB RAM.
 - OS: macOS 26.2 (Build 25C56).
@@ -193,64 +208,34 @@ All reported results were produced on the following local setup:
   - STT: `google/medasr`,
   - TTS: Kokoro-82M.
 
-Performance values should be interpreted relative to this environment; latency and throughput can vary on lower-power hardware or different deployment topologies.
+Latency and throughput will vary with different hardware and deployment topology.
 
 #### Deployment challenges and mitigation plan
-- Challenge: real-time latency variance across hardware.
-  Mitigation: quantized model runtime, modular service scaling, websocket keepalive tuning.
-- Challenge: safe behavior under incomplete or noisy input.
-  Mitigation: conservative escalation rules, structured parse validation, mandatory human-in-the-loop review.
-- Challenge: integration into existing clinical software stacks.
-  Mitigation: FHIR mapping/validation pipeline and exportable Bundle JSON artifacts.
-- Challenge: adoption in operational environments.
-  Mitigation: dual modes (`ptt` and `auto_turn`) with pilot gates before default rollout.
+- Challenge: latency variance across hardware.
+  Mitigation: quantized runtimes, modular scaling, websocket keepalive tuning.
+- Challenge: safe behavior with incomplete/noisy input.
+  Mitigation: conservative escalation, parse validation, mandatory human review.
+- Challenge: integration with existing clinical systems.
+  Mitigation: FHIR mapping/validation and exportable Bundle artifacts.
+- Challenge: operational adoption.
+  Mitigation: dual interaction modes (`ptt`, `auto_turn`) and pilot gates before default rollout.
 
-#### Performance and operational readiness
-For real-time usability, we formalized pilot gates for auto-turn mode, including:
+### MVP status and path to production
+This submission is an MVP proving end-to-end feasibility. A production deployment is realistic, but requires focused hardening in five areas:
 
-- P95 end-of-speech to first assistant audio chunk,
-- false commit and missed commit rates,
-- barge-in success rate,
-- session-fatal error rate,
-- operator usability score.
-
-This gives a practical go/no-go framework for moving from push-to-talk baseline to hands-free default behavior.
+- Clinical safety validation: prospective pilot, clinician-reviewed labels, and explicit acceptance thresholds by risk tier.
+- Security/compliance baseline: encryption, RBAC, PHI minimization, retention controls, and mapped HIPAA/GDPR procedures.
+- Reliability/SRE: SLOs for latency and availability, autoscaling + backpressure, on-call runbooks, and failure drills.
+- Interoperability rollout: broader FHIR resource coverage and site-specific mapping profiles for target EHRs.
+- MLOps governance: continuous evaluation, drift monitoring, and controlled prompt/model version rollback.
 
 ### Why this solution is compelling
-TriageKeep’s strength is the complete loop, not a single model call:
+TriageKeep is compelling because it closes the full loop from first voice contact to interoperable clinical handoff:
 
 - voice intake,
-- medical reasoning,
-- continuous structuring,
+- domain-grounded reasoning,
+- continuous structured extraction,
 - safety-aware reporting,
-- and standards-based interoperability (FHIR).
+- and FHIR-compatible export.
 
-That end-to-end design is what makes the system feasible in real healthcare workflows.
-
-### Submission package alignment (Execution and communication)
-- Write-up follows the competition template and directly maps to all judging criteria.
-- Repository includes runnable backend/frontend, safety docs, and test suites.
-- Video demo should show one end-to-end scenario:
-  1. patient speaks,
-  2. live extraction updates,
-  3. auto-turn interaction,
-  4. final report,
-  5. FHIR export.
-
----
-### Submission links
-- Required Video (<= 3 min): [ADD LINK]
-- Required Public Code Repository: [ADD LINK]
-- Bonus Public Live Demo: [ADD LINK]
-- Bonus Open-Weight Hugging Face model (tracing to HAI-DEF): [ADD LINK]
-
-### Optional appendix (if space allows)
-If your final write-up has room, add one short table with measured pilot numbers:
-
-- avg intake duration,
-- extraction completeness,
-- escalation recall on red-flag scenarios,
-- auto-turn latency and error metrics,
-- operator usability score.
-
-This converts your narrative into judge-friendly evidence.
+That complete pathway is what makes this system practical for real healthcare workflows.
