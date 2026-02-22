@@ -1,33 +1,40 @@
 # Frontend
 
-Next.js UI for TriageKeep voice triage.
+Next.js 16 UI for TriageKeep voice triage.
+
+## Scripts
+
+- `npm run dev`: start local dev server.
+- `npm run build`: production build.
+- `npm run start`: run the production build.
+- `npm run lint`: run ESLint.
 
 ## Runtime Configuration
 
-The frontend proxies backend routes through same-origin paths. Configure backend origin with:
+### Environment Variables
 
-```bash
-BACKEND_ORIGIN=http://127.0.0.1:8000 npm run dev
-```
+- `BACKEND_ORIGIN` (server-side, optional)
+  - Used by Next.js rewrites for HTTP routes.
+  - Default: `http://127.0.0.1:8000`.
+- `NEXT_PUBLIC_BACKEND_ORIGIN` (client-side, optional)
+  - If set, websocket connects to `${NEXT_PUBLIC_BACKEND_ORIGIN}/ws/audio`.
+  - Useful when frontend and backend are on different public origins.
+- `NEXT_PUBLIC_VOICE_INTERACTION_MODE` (client-side, optional)
+  - `ptt` (default) or `auto_turn`.
 
-Default backend origin (if unset): `http://127.0.0.1:8000`.
-
-For websocket backend host override (when frontend/backend are on different origins), set:
-
-```bash
-NEXT_PUBLIC_BACKEND_ORIGIN=http://127.0.0.1:8000
-```
-
-## Proxied Routes
+### Proxied HTTP Routes
 
 - `/report` -> `${BACKEND_ORIGIN}/report`
 - `/report/fhir` -> `${BACKEND_ORIGIN}/report/fhir`
-- `/ws/audio` -> same-origin websocket by default, or `${NEXT_PUBLIC_BACKEND_ORIGIN}/ws/audio` when override is set
-- `/static/*` -> `${BACKEND_ORIGIN}/static/*`
+- `/static/:path*` -> `${BACKEND_ORIGIN}/static/:path*`
 
-## Production Note
+### WebSocket URL Resolution
 
-In production, keep these same-origin routes available so the browser does not use hardcoded backend hosts/ports. This avoids mixed-content issues under HTTPS.
+The app resolves `/ws/audio` in this order:
+
+1. `NEXT_PUBLIC_BACKEND_ORIGIN` override (converted to `ws://` or `wss://`).
+2. Localhost fallback: `ws://127.0.0.1:8000/ws/audio` (or `wss://` under HTTPS).
+3. Same-origin host fallback: `{window.location.host}/ws/audio`.
 
 ## Local Development
 
@@ -35,3 +42,9 @@ In production, keep these same-origin routes available so the browser does not u
 npm install
 BACKEND_ORIGIN=http://127.0.0.1:8000 npm run dev
 ```
+
+Open `http://localhost:3000`.
+
+## Production Note
+
+Keep rewritten HTTP routes (`/report`, `/report/fhir`, `/static/*`) reachable from the deployed frontend origin to avoid mixed-content and CORS surprises.

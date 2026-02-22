@@ -15,9 +15,12 @@ frontend/node_modules/
 frontend/.next/
 
 # Local env files
-backend/.env
-frontend/.env.local
-frontend/.env*
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
 
 # Large local model artifacts
 backend/models/

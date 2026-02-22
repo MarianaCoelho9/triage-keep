@@ -4,87 +4,87 @@ AI-assisted voice triage prototype for the MedGemma Impact Challenge.
 
 ## Architecture
 
-- `frontend/` (Next.js): Dispatcher UI (voice controls, transcript, extraction dashboard, final report panel).
-- `backend/` (FastAPI): Voice/event pipeline and REST APIs.
-- `backend/voice_agent/services`:
-  - STT: `google/medasr`
-  - LLM: MedGemma (llama.cpp)
+- `frontend/` (Next.js 16): dispatcher UI for audio controls, transcript, extraction dashboard, final report, and FHIR export.
+- `backend/` (FastAPI): HTTP APIs, websocket session handling, static audio hosting, and the voice pipeline runtime.
+- `backend/voice_agent/`: modular agent system.
+  - STT: MedASR (`torch` or `mlx` backend)
+  - LLM: MedGemma via llama.cpp
   - TTS: Kokoro-82M
-- Pipeline flow:
-  - `Audio -> STT -> interaction/extraction workflows -> TTS -> websocket events`
+- Runtime flow:
+  - `Audio -> STT -> interaction -> incremental extraction -> TTS -> websocket events`
+  - `END_SESSION` signal in agent text triggers final report generation events.
 
 ## API Overview
 
-- `POST /analyze`: returns next assistant question.
-- `POST /extract`: returns structured envelope:
-  - `{ "success": boolean, "data": {...}, "error": {...}|null }`
-- `POST /report`: returns structured envelope:
-  - `{ "success": boolean, "data": {...}, "error": {...}|null }`
-- `POST /transcribe`, `POST /synthesize`
-- `WS /ws/audio`
+- `GET /`: health/status.
+- `POST /analyze`: single-turn interaction response.
+- `POST /extract`: extraction envelope `{ success, data, error }`.
+- `POST /report`: report envelope `{ success, data, error }`.
+- `POST /report/fhir`: FHIR Bundle envelope `{ success, data, error }`.
+- `POST /transcribe`: file upload transcription.
+- `POST /synthesize`: text-to-speech (WAV response).
+- `WS /ws/audio`: real-time audio + text/event stream.
 
 ## Quick Start
 
 ### Backend
 
+1. Download the **MedGemma 27B GGUF** model file and place it in `backend/models/` (example: `backend/models/medgemma-27b-it-Q3_K_M.gguf`).
+
+2. Configure env:
+
 ```bash
 cd backend
+cp .env.example .env
+```
+
+Set `MEDGEMMA_GGUF_PATH` in `.env` to that file path, for example:
+
+```bash
+MEDGEMMA_GGUF_PATH=/absolute/path/to/triage-keep/backend/models/medgemma-27b-it-Q3_K_M.gguf
+```
+
+3. Install and run:
+
+```bash
 uv sync
 PYTHONPATH=. uv run python main.py
 ```
 
-If you run `uvicorn` directly, include websocket keepalive tuning:
-
-```bash
-PYTHONPATH=. uv run uvicorn main:app --host 0.0.0.0 --port 8000 --ws-ping-interval 60 --ws-ping-timeout 120
-```
+Backend default: `http://127.0.0.1:8000`.
 
 ### Frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev
+BACKEND_ORIGIN=http://127.0.0.1:8000 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Frontend default: `http://localhost:3000`.
 
 ### Interaction Mode
 
 Set `NEXT_PUBLIC_VOICE_INTERACTION_MODE` in `frontend/.env.local`:
 
 - `ptt` (default): tap mic to start and tap again to stop/commit.
-- `auto_turn`: hands-free turn commit based on in-browser VAD (silence timeout + cooldown guards).
+- `auto_turn`: hands-free turn commit using in-browser VAD and cooldown guards.
 
 ## Demo Runbook
 
 1. Start backend and frontend.
-2. Open the UI and verify websocket status turns `Online`.
-3. Click microphone and speak a short triage scenario.
-4. Use one of the flows:
-   - `ptt`: stop recording to send `COMMIT`.
-   - `auto_turn`: pause after speaking and verify commit happens automatically.
-5. Verify:
-   - transcript messages are displayed,
-   - extraction data appears in the left dashboard,
-   - assistant audio is played.
-6. Click `End Connection` to generate the final report.
-7. Verify report renders sections (administrative, patient info, assessment, disposition, plan).
-8. Click `Start New Conversation` and repeat.
+2. Open `http://localhost:3000` and verify status becomes `Online`.
+3. Speak a short triage scenario.
+4. Confirm transcript, extraction updates, and assistant audio playback.
+5. Click `End Connection` to generate the final report.
+6. Optionally export the report to FHIR JSON.
+7. Click `Start New Conversation` to reset.
 
-## Demo Video
+## Demo Assets
 
-[Watch the demo video](docs/triage-keep_demo.mov)
-
-## UI Screenshots
-
-### App Startup
-
-![App startup](docs/app_startup.png)
-
-### Triage UI Example
-
-![Triage UI example](docs/ui_example.png)
+- Demo video: [docs/triage-keep_demo.mov](docs/triage-keep_demo.mov)
+- Startup screenshot: ![App startup](docs/app_startup.png)
+- UI screenshot: ![Triage UI example](docs/ui_example.png)
 
 ## Quality Gates
 
@@ -105,8 +105,3 @@ npm run lint
 ## Safety
 
 See `docs/safety_guardrails.md` for non-diagnostic behavior, escalation rules, and secure configuration requirements.
-
-## Auto-Turn Pilot Docs
-
-- Baseline template: `docs/auto-turn-baseline.md`
-- Pilot metrics + go/no-go template: `docs/auto-turn-pilot-results.md`
